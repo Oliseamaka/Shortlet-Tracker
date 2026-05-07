@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Shortlet">
+<meta name="theme-color" content="#0F3460">
+<title>Shortlet Tracker</title>
+<link rel="manifest" href="manifest.json">
+<style>
+  :root {
+    --bg: #0F1923;
+    --surface: #162232;
+    --surface2: #1E2E42;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.14);
+    --text: #F0F4F8;
+    --muted: #8899AA;
+    --green: #10B981;
+    --green-dim: rgba(16,185,129,0.12);
+    --red: #F43F5E;
+    --red-dim: rgba(244,63,94,0.12);
+    --gold: #F59E0B;
+    --gold-dim: rgba(245,158,11,0.12);
+    --blue: #3B82F6;
+    --radius: 14px;
+    --radius-sm: 8px;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: -apple-system, 'SF Pro Display', 'Segoe UI', sans-serif; overscroll-behavior: none; }
+  body { display: flex; flex-direction: column; max-width: 480px; margin: 0 auto; position: relative; }
+
+  /* ── Header ── */
+  .header {
+    padding: 52px 20px 16px;
+    background: linear-gradient(180deg, #0A1420 0%, var(--bg) 100%);
+    position: sticky; top: 0; z-index: 10;
+  }
+  .header-row { display: flex; align-items: center; justify-content: space-between; }
+  .app-title { font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .sync-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); }
+
+  /* ── Tabs ── */
+  .tabs {
+    display: flex; background: var(--surface); border-radius: 12px;
+    padding: 3px; margin: 0 20px 0; gap: 2px;
+  }
+  .tab { flex: 1; padding: 9px 4px; border: none; background: transparent; color: var(--muted);
+    font-size: 12px; font-weight: 600; border-radius: 9px; cursor: pointer; transition: all .2s; letter-spacing: .02em; }
+  .tab.active { background: var(--surface2); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,.3); }
+
+  /* ── Scroll area ── */
+  .scroll-area { flex: 1; overflow-y: auto; padding: 16px 20px calc(16px + var(--safe-bottom)); }
+  .scroll-area::-webkit-scrollbar { display: none; }
+
+  /* ── Sections ── */
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* ── Net position hero ── */
+  .net-hero {
+    background: var(--surface); border-radius: var(--radius); padding: 24px 20px;
+    text-align: center; margin-bottom: 14px; position: relative; overflow: hidden;
+  }
+  .net-hero::before {
+    content: ''; position: absolute; top: -40px; left: 50%; transform: translateX(-50%);
+    width: 200px; height: 200px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(16,185,129,0.07) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .net-label { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .net-value { font-size: 42px; font-weight: 700; letter-spacing: -.02em; }
+  .net-value.positive { color: var(--green); }
+  .net-value.negative { color: var(--red); }
+  .net-sub { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+  /* ── KPI row ── */
+  .kpi-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .kpi { background: var(--surface); border-radius: var(--radius-sm); padding: 14px 12px; }
+  .kpi-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 6px; }
+  .kpi-val { font-size: 16px; font-weight: 700; }
+  .kpi-val.g { color: var(--green); }
+  .kpi-val.r { color: var(--red); }
+
+  /* ── Section title ── */
+  .sec-title { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 20px 0 10px; }
+
+  /* ── Bar chart ── */
+  .bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .bar-month { font-size: 11px; color: var(--muted); width: 36px; flex-shrink: 0; }
+  .bar-tracks { flex: 1; display: flex; flex-direction: column; gap: 3px; }
+  .bar-track { height: 7px; background: rgba(255,255,255,0.06); border-radius: 4px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; transition: width .5s ease; }
+  .bar-fill.g { background: var(--green); }
+  .bar-fill.r { background: var(--red); }
+  .bar-val { font-size: 10px; color: var(--muted); width: 60px; text-align: right; flex-shrink: 0; font-weight: 600; }
+
+  /* ── Category chips ── */
+  .cat-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .cat-chip { background: var(--surface); border-radius: var(--radius-sm); padding: 12px 14px;
+    border: 0.5px solid var(--border); }
+  .cat-chip .cn { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .cat-chip .cv { font-size: 15px; font-weight: 700; color: var(--red); }
+
+  /* ── Form ── */
+  .form-section { }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 6px; }
+  .field input, .field select, .field textarea {
+    width: 100%; background: var(--surface); border: 0.5px solid var(--border2);
+    border-radius: var(--radius-sm); padding: 13px 14px; color: var(--text);
+    font-size: 15px; outline: none; appearance: none; -webkit-appearance: none;
+  }
+  .field input:focus, .field select:focus { border-color: rgba(255,255,255,.3); }
+  .field select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23667788' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .amount-wrap { position: relative; }
+  .amount-prefix { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 15px; font-weight: 700; color: var(--muted); pointer-events: none; }
+  .amount-wrap input { padding-left: 30px; font-weight: 700; font-size: 18px; }
+
+  /* ── Save button ── */
+  .save-btn {
+    width: 100%; padding: 16px; border: none; border-radius: var(--radius);
+    font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 8px;
+    letter-spacing: .02em; transition: opacity .15s, transform .1s;
+  }
+  .save-btn:active { transform: scale(0.98); opacity: .9; }
+  .save-btn.income { background: var(--green); color: #fff; }
+  .save-btn.expense { background: var(--red); color: #fff; }
+
+  /* ── Log entries ── */
+  .entry-list { display: flex; flex-direction: column; gap: 8px; }
+  .entry {
+    background: var(--surface); border-radius: var(--radius-sm); padding: 14px;
+    display: flex; align-items: center; gap: 12px; border: 0.5px solid var(--border);
+  }
+  .entry-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+  .entry-icon.g { background: var(--green-dim); }
+  .entry-icon.r { background: var(--red-dim); }
+  .entry-body { flex: 1; min-width: 0; }
+  .entry-name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .entry-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .entry-right { text-align: right; flex-shrink: 0; }
+  .entry-amount { font-size: 15px; font-weight: 700; }
+  .entry-amount.g { color: var(--green); }
+  .entry-amount.r { color: var(--red); }
+  .entry-date { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .del-btn { background: none; border: none; color: var(--muted); font-size: 18px; cursor: pointer; padding: 4px; line-height: 1; flex-shrink: 0; }
+
+  /* ── Empty state ── */
+  .empty { text-align: center; padding: 48px 20px; color: var(--muted); }
+  .empty-icon { font-size: 36px; margin-bottom: 12px; }
+  .empty p { font-size: 14px; line-height: 1.6; }
+
+  /* ── Toast ── */
+  .toast {
+    position: fixed; bottom: calc(80px + var(--safe-bottom)); left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--surface2); border: 0.5px solid var(--border2); color: var(--text);
+    padding: 12px 20px; border-radius: 30px; font-size: 13px; font-weight: 600;
+    white-space: nowrap; opacity: 0; transition: all .25s; z-index: 999; pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ── Log filter tabs ── */
+  .log-filter { display: flex; gap: 8px; margin-bottom: 14px; }
+  .filter-btn { padding: 7px 14px; border-radius: 20px; border: 0.5px solid var(--border2);
+    background: transparent; color: var(--muted); font-size: 12px; font-weight: 600; cursor: pointer; }
+  .filter-btn.active { background: var(--surface2); color: var(--text); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-row">
+    <span class="app-title">🏠 Shortlet Tracker</span>
+    <div class="sync-dot" id="sync-dot"></div>
+  </div>
+</div>
+
+<div class="tabs" style="margin-top:12px">
+  <button class="tab active" onclick="switchTab('dash')">Dashboard</button>
+  <button class="tab" onclick="switchTab('income')">+ Income</button>
+  <button class="tab" onclick="switchTab('expense')">+ Expense</button>
+  <button class="tab" onclick="switchTab('log')">History</button>
+</div>
+
+<div class="scroll-area">
+
+  <!-- DASHBOARD -->
+  <div id="sec-dash" class="section active">
+    <div class="net-hero">
+      <div class="net-label">Net Position</div>
+      <div class="net-value positive" id="net-val">₦0</div>
+      <div class="net-sub" id="net-sub">Start logging to see your position</div>
+    </div>
+    <div class="kpi-row">
+      <div class="kpi"><div class="kpi-label">Income</div><div class="kpi-val g" id="kpi-income">₦0</div></div>
+      <div class="kpi"><div class="kpi-label">Expenses</div><div class="kpi-val r" id="kpi-exp">₦0</div></div>
+      <div class="kpi"><div class="kpi-label">Margin</div><div class="kpi-val" id="kpi-margin" style="color:var(--gold)">—</div></div>
+    </div>
+    <div class="kpi-row">
+      <div class="kpi"><div class="kpi-label">Bookings</div><div class="kpi-val" id="kpi-bk">0</div></div>
+      <div class="kpi"><div class="kpi-label">Exp. items</div><div class="kpi-val" id="kpi-ec">0</div></div>
+      <div class="kpi"><div class="kpi-label">Avg booking</div><div class="kpi-val" id="kpi-avg" style="font-size:13px">₦0</div></div>
+    </div>
+    <div class="sec-title">Last 6 months</div>
+    <div id="bar-chart"></div>
+    <div class="sec-title">Expenses by category</div>
+    <div class="cat-wrap" id="cat-wrap" style="margin-bottom:8px"></div>
+  </div>
+
+  <!-- INCOME FORM -->
+  <div id="sec-income" class="section">
+    <div class="form-section">
+      <div class="field">
+        <label>Amount received (₦)</label>
+        <div class="amount-wrap"><span class="amount-prefix">₦</span><input type="number" id="i-amount" inputmode="numeric" placeholder="0"></div>
+      </div>
+      <div class="field"><label>Guest name</label><input type="text" id="i-guest" placeholder="e.g. Adaeze Okafor"></div>
+      <div class="field-row">
+        <div class="field"><label>Platform</label>
+          <select id="i-platform"><option>Airbnb</option><option>Booking.com</option><option>Direct</option><option>Expedia</option><option>Other</option></select>
+        </div>
+        <div class="field"><label>Property</label><input type="text" id="i-property" placeholder="Apt 2B"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Check-in</label><input type="date" id="i-checkin"></div>
+        <div class="field"><label>Check-out</label><input type="date" id="i-checkout"></div>
+      </div>
+      <div class="field"><label>Payment method</label>
+        <select id="i-method"><option>Bank Transfer</option><option>Cash</option><option>Card</option><option>POS</option><option>Mobile Money</option></select>
+      </div>
+      <div class="field"><label>Notes / reference</label><input type="text" id="i-notes" placeholder="Booking ref, any notes…"></div>
+      <button class="save-btn income" onclick="saveIncome()">Save Payment</button>
+    </div>
+  </div>
+
+  <!-- EXPENSE FORM -->
+  <div id="sec-expense" class="section">
+    <div class="form-section">
+      <div class="field">
+        <label>Amount paid (₦)</label>
+        <div class="amount-wrap"><span class="amount-prefix">₦</span><input type="number" id="e-amount" inputmode="numeric" placeholder="0"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Category</label>
+          <select id="e-cat">
+            <option>Utilities</option><option>Cleaning</option><option>Maintenance</option><option>Supplies</option>
+            <option>Platform Fee</option><option>Internet</option><option>Repairs</option><option>Laundry</option>
+            <option>Insurance</option><option>Tax</option><option>Staff/Salary</option><option>Marketing</option><option>Other</option>
+          </select>
+        </div>
+        <div class="field"><label>Property</label><input type="text" id="e-property" placeholder="Apt 2B"></div>
+      </div>
+      <div class="field"><label>Vendor / Payee</label><input type="text" id="e-vendor" placeholder="e.g. EKEDC, Cleanse Pro"></div>
+      <div class="field-row">
+        <div class="field"><label>Date</label><input type="date" id="e-date"></div>
+        <div class="field"><label>Payment method</label>
+          <select id="e-method"><option>Bank Transfer</option><option>Cash</option><option>Card</option><option>POS</option><option>Auto-debit</option><option>Mobile Money</option></select>
+        </div>
+      </div>
+      <div class="field"><label>Description / receipt ref</label><input type="text" id="e-desc" placeholder="What this was for…"></div>
+      <button class="save-btn expense" onclick="saveExpense()">Save Expense</button>
+    </div>
+  </div>
+
+  <!-- HISTORY -->
+  <div id="sec-log" class="section">
+    <div class="log-filter">
+      <button class="filter-btn active" id="f-all" onclick="setFilter('all')">All</button>
+      <button class="filter-btn" id="f-income" onclick="setFilter('income')">Income</button>
+      <button class="filter-btn" id="f-exp" onclick="setFilter('expense')">Expenses</button>
+    </div>
+    <div class="entry-list" id="entry-list"></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Storage ─────────────────────────────────────────────────────
+let data = JSON.parse(localStorage.getItem('sl_v2') || '{"payments":[],"expenses":[]}');
+function persist() { localStorage.setItem('sl_v2', JSON.stringify(data)); }
+
+// ── Formatting ──────────────────────────────────────────────────
+function fmt(n) { return '₦' + Math.round(n).toLocaleString('en-NG'); }
+function fmtShort(n) {
+  if (n >= 1000000) return '₦' + (n/1000000).toFixed(1) + 'M';
+  if (n >= 1000) return '₦' + (n/1000).toFixed(0) + 'k';
+  return fmt(n);
+}
+function today() { return new Date().toISOString().split('T')[0]; }
+
+// ── Toast ────────────────────────────────────────────────────────
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// ── Tabs ─────────────────────────────────────────────────────────
+let logFilter = 'all';
+function switchTab(id) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['dash','income','expense','log'][i] === id));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById('sec-'+id).classList.add('active');
+  if (id === 'dash') renderDash();
+  if (id === 'log') renderLog();
+}
+
+// ── Save income ──────────────────────────────────────────────────
+function saveIncome() {
+  const amount = parseFloat(document.getElementById('i-amount').value);
+  const guest = document.getElementById('i-guest').value.trim();
+  if (!amount || amount <= 0) { toast('Enter a valid amount'); return; }
+  if (!guest) { toast('Enter guest name'); return; }
+  data.payments.push({
+    id: Date.now(), amount, guest,
+    platform: document.getElementById('i-platform').value,
+    property: document.getElementById('i-property').value || '—',
+    checkin: document.getElementById('i-checkin').value || today(),
+    checkout: document.getElementById('i-checkout').value || '',
+    method: document.getElementById('i-method').value,
+    notes: document.getElementById('i-notes').value,
+    date: today()
+  });
+  persist();
+  // clear
+  ['i-amount','i-guest','i-property','i-checkin','i-checkout','i-notes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('i-checkin').value = today();
+  toast('✓ Payment saved');
+  switchTab('dash');
+}
+
+// ── Save expense ─────────────────────────────────────────────────
+function saveExpense() {
+  const amount = parseFloat(document.getElementById('e-amount').value);
+  if (!amount || amount <= 0) { toast('Enter a valid amount'); return; }
+  data.expenses.push({
+    id: Date.now(), amount,
+    cat: document.getElementById('e-cat').value,
+    property: document.getElementById('e-property').value || '—',
+    vendor: document.getElementById('e-vendor').value || '—',
+    date: document.getElementById('e-date').value || today(),
+    method: document.getElementById('e-method').value,
+    desc: document.getElementById('e-desc').value
+  });
+  persist();
+  ['e-amount','e-property','e-vendor','e-desc'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('e-date').value = today();
+  toast('✓ Expense saved');
+  switchTab('dash');
+}
+
+// ── Dashboard ────────────────────────────────────────────────────
+function renderDash() {
+  const totalIncome = data.payments.reduce((s,p) => s+p.amount, 0);
+  const totalExp = data.expenses.reduce((s,e) => s+e.amount, 0);
+  const net = totalIncome - totalExp;
+  const margin = totalIncome ? (net/totalIncome*100) : 0;
+  const avg = data.payments.length ? totalIncome/data.payments.length : 0;
+
+  const netEl = document.getElementById('net-val');
+  netEl.textContent = (net < 0 ? '–' : '') + fmt(Math.abs(net));
+  netEl.className = 'net-value ' + (net >= 0 ? 'positive' : 'negative');
+  document.getElementById('net-sub').textContent =
+    totalIncome ? `${margin.toFixed(1)}% profit margin` : 'Start logging to see your position';
+
+  document.getElementById('kpi-income').textContent = fmtShort(totalIncome);
+  document.getElementById('kpi-exp').textContent = fmtShort(totalExp);
+  document.getElementById('kpi-margin').textContent = totalIncome ? margin.toFixed(1)+'%' : '—';
+  document.getElementById('kpi-bk').textContent = data.payments.length;
+  document.getElementById('kpi-ec').textContent = data.expenses.length;
+  document.getElementById('kpi-avg').textContent = fmtShort(avg);
+
+  // Monthly bars
+  const months = {};
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(); d.setMonth(d.getMonth()-i);
+    const k = d.toLocaleString('default',{month:'short'});
+    months[k] = {income:0, exp:0};
+  }
+  data.payments.forEach(p => {
+    const d = new Date(p.checkin||p.date);
+    const k = d.toLocaleString('default',{month:'short'});
+    if (months[k]) months[k].income += p.amount;
+  });
+  data.expenses.forEach(e => {
+    const d = new Date(e.date);
+    const k = d.toLocaleString('default',{month:'short'});
+    if (months[k]) months[k].exp += e.amount;
+  });
+  const maxVal = Math.max(...Object.values(months).flatMap(m=>[m.income,m.exp]),1);
+  document.getElementById('bar-chart').innerHTML = Object.entries(months).map(([m,v]) => `
+    <div class="bar-row">
+      <span class="bar-month">${m}</span>
+      <div class="bar-tracks">
+        <div class="bar-track"><div class="bar-fill g" style="width:${(v.income/maxVal*100).toFixed(1)}%"></div></div>
+        <div class="bar-track"><div class="bar-fill r" style="width:${(v.exp/maxVal*100).toFixed(1)}%"></div></div>
+      </div>
+      <span class="bar-val">${v.income ? fmtShort(v.income) : ''}</span>
+    </div>`).join('');
+
+  // Category breakdown
+  const cats = {};
+  data.expenses.forEach(e => cats[e.cat] = (cats[e.cat]||0)+e.amount);
+  const sorted = Object.entries(cats).sort((a,b)=>b[1]-a[1]);
+  document.getElementById('cat-wrap').innerHTML = sorted.length
+    ? sorted.map(([c,v]) => `<div class="cat-chip"><div class="cn">${c}</div><div class="cv">${fmt(v)}</div></div>`).join('')
+    : '<div style="color:var(--muted);font-size:13px;padding:8px 0;grid-column:1/-1">No expenses yet</div>';
+}
+
+// ── History ───────────────────────────────────────────────────────
+const PLATFORM_ICONS = {Airbnb:'🏡','Booking.com':'🌐',Direct:'📱',Expedia:'✈️',Other:'📋'};
+const CAT_ICONS = {Utilities:'💡',Cleaning:'🧹',Maintenance:'🔧',Supplies:'🛒','Platform Fee':'💳',
+  Internet:'📶',Repairs:'🪛',Laundry:'👕',Insurance:'🛡️',Tax:'📄','Staff/Salary':'👷',Marketing:'📣',Other:'📦'};
+
+function setFilter(f) {
+  logFilter = f;
+  ['all','income','exp'].forEach(id => document.getElementById('f-'+id).classList.toggle('active', id.replace('exp','expense') === f || (id==='all'&&f==='all')));
+  renderLog();
+}
+
+function renderLog() {
+  const all = [
+    ...data.payments.map(p => ({...p, type:'income'})),
+    ...data.expenses.map(e => ({...e, type:'expense'}))
+  ].sort((a,b) => b.id - a.id);
+  const filtered = logFilter === 'all' ? all : all.filter(e => e.type === logFilter);
+
+  if (!filtered.length) {
+    document.getElementById('entry-list').innerHTML = `<div class="empty"><div class="empty-icon">${logFilter==='income'?'💰':logFilter==='expense'?'💸':'📋'}</div><p>No entries yet.<br>Start logging above.</p></div>`;
+    return;
+  }
+
+  document.getElementById('entry-list').innerHTML = filtered.map(e => {
+    if (e.type === 'income') return `
+      <div class="entry">
+        <div class="entry-icon g">${PLATFORM_ICONS[e.platform]||'💰'}</div>
+        <div class="entry-body">
+          <div class="entry-name">${e.guest}</div>
+          <div class="entry-sub">${e.platform} · ${e.property}</div>
+        </div>
+        <div class="entry-right">
+          <div class="entry-amount g">+${fmt(e.amount)}</div>
+          <div class="entry-date">${e.checkin||e.date}</div>
+        </div>
+        <button class="del-btn" onclick="del('income',${e.id})">×</button>
+      </div>`;
+    else return `
+      <div class="entry">
+        <div class="entry-icon r">${CAT_ICONS[e.cat]||'💸'}</div>
+        <div class="entry-body">
+          <div class="entry-name">${e.cat}</div>
+          <div class="entry-sub">${e.vendor} · ${e.property}</div>
+        </div>
+        <div class="entry-right">
+          <div class="entry-amount r">–${fmt(e.amount)}</div>
+          <div class="entry-date">${e.date}</div>
+        </div>
+        <button class="del-btn" onclick="del('expense',${e.id})">×</button>
+      </div>`;
+  }).join('');
+}
+
+function del(type, id) {
+  if (type === 'income') data.payments = data.payments.filter(p => p.id !== id);
+  else data.expenses = data.expenses.filter(e => e.id !== id);
+  persist(); renderLog(); renderDash();
+}
+
+// ── Init ──────────────────────────────────────────────────────────
+document.getElementById('i-checkin').value = today();
+document.getElementById('e-date').value = today();
+renderDash();
+</script>
+
+</body>
+</html>
