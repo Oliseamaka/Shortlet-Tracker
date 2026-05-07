@@ -18,7 +18,6 @@ Here's your live tracker app. Here's how it works:
 Dashboard — your net position updates instantly every time you log something. Includes a 6-month income vs expense bar chart and expense breakdown by category.
 + Payment — log a booking with guest name, platform (Airbnb, Booking.com, Direct, etc.), property, check-in/out dates, and amount.
 + Expense — log any debit with category, vendor, property, and date. All 13 expense categories pre-loaded.
-+ 
-History — view and delete any entry.
++ History — view and delete any entry.
 
-Your data saves automatically in your browser, so it persists between sessions. For a more permanent solution (accessible across devices), I can upgrade it to sync with Google Sheets via the Google Sheets API — just say the word.
+Your data saves automatically and is accessible across devices. It syncs with Google Sheets via the Google Sheets API .
