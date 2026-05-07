@@ -2,7 +2,9 @@
 Here's your Shortlet Payment Tracker — a online app that allows you manage your income, expenses and net position for your apartments:
 
 💰 Payments Sheet — log every booking with guest name, platform (Airbnb, Booking.com, Direct, etc.), property, check-in/out dates, amount, and payment method. Dropdown menus are pre-built for platform and payment method.
+
 💸 Expenses Sheet — record every debit with category (Utilities, Cleaning, Maintenance, Platform Fees, etc.), vendor, property, and reference number. Category and payment method dropdowns included.
+
 📊 Net Position Dashboard — auto-updates the moment you enter data:
 
 Total Income vs Total Expenses as big KPI cards
